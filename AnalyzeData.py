@@ -38,10 +38,10 @@ def main():
     rotatedData = rotate2dArray(data)
     
     print("\nFOR x1:")
-    buildHistogram(rotatedData, "data1", "x1", 1, sa1, peosd1)
+    processData(rotatedData, "data1", "x1", 1, sa1, peosd1)
     
     print("\nFOR x2:")
-    buildHistogram(rotatedData, "data2", "x2", 2, sa2, peosd2)
+    processData(rotatedData, "data2", "x2", 2, sa2, peosd2)
 
 def rotate2dArray(data):
     res = []
@@ -91,13 +91,12 @@ def arrStrToFloat(array):
     for i in range(0, len(array)):
         array[i]=float(array[i])
 
-def buildHistogram(data, parameter_name, hystogram_name, columnIndex, sampleAverage, pointEstimateOfStandardDeviation):
+def processData(data, parameter_name, hystogram_name, columnIndex, sampleAverage, pointEstimateOfStandardDeviation):
     #print("paramente:"+parameter_name+" data:"+str(data))
     desired_data = data[columnIndex]
     #print(str(min(desired_data))+"  "+str(max(desired_data)))
     mrange = (min(desired_data), max(desired_data))
     bins=50
-    desired_data1=[3,4]
     plt.hist(desired_data, bins, mrange, density=True, color = 'blue', histtype = 'bar', rwidth = 0.8)
     plt.xlabel(parameter_name)
     #plt.gca().xaxis.set_major_locator(MaxNLocator(integer=True))
@@ -113,14 +112,13 @@ def buildHistogram(data, parameter_name, hystogram_name, columnIndex, sampleAver
     #statistic, p_value = shapiro(desired_data)
     #print(f"Shapiro-Wilk Statistic: {statistic}, P-value: {p_value}")
     
+    #Anderson-Darling
     #'norm' – Gaussian distribution.
     #'expon' – Exponential distribution.
     #'logistic' – Logistic distribution.
     #'gumbel' – Gumbel distribution.
     #'gumbel_r' – Right-skewed Gumbel distribution.
     #'gumbel_l' – Left-skewed Gumbel distribution.
-    
-    #Anderson-Darling
     result = anderson(desired_data, dist='norm')
     print(f"Critical Values: {result.critical_values}")
     print(f"Significance Levels: {result.significance_level}")
@@ -141,6 +139,48 @@ def buildHistogram(data, parameter_name, hystogram_name, columnIndex, sampleAver
     result = anderson(desired_data, dist='gumbel_l')
     print(f"Anderson-Darling Statistic (Left-skewed Gumbel distribution): {result.statistic}")
     
+    #Pearson's criterion
+    
+    #number of subranges
+    m=5*math.log(len(desired_data))
+    m=math.ceil(m)
+    
+    #size of subranges
+    deltX=(max(desired_data)-min(desired_data))/m
+    xBorders=[]
+    
+    #borders of subranges
+    for i in range(0,m):
+        tmp=[]
+        tmp.append(min(desired_data)+i*deltX) #border beggin
+        tmp.append(min(desired_data)+(i+1)*deltX) #border end
+        xBorders.append(tmp)
+        
+    #theoretical probability for the class and Expected frequencies
+    probabilities=[] #sampleAverage / pointEstimateOfStandardDeviation
+    expectFrequencies=[]
+    for i in range(0, m):
+        tmp=probabilityDensities((xBorders[i][1]-sampleAverage)/pointEstimateOfStandardDeviation, sampleAverage, pointEstimateOfStandardDeviation)-probabilityDensities((xBorders[i][0]-sampleAverage)/pointEstimateOfStandardDeviation, sampleAverage, pointEstimateOfStandardDeviation)
+        probabilities.append(tmp)
+        expectFrequencies.append(tmp*len(desired_data))
+        
+    #observed frequencies
+    observedFrequencies=[0]*len(expectFrequencies)
+    for i in range(0, len(desired_data)):
+        for j in range(0, m):
+            if desired_data[i]>xBorders[j][0] and desired_data[i]<xBorders[j][1]:
+                break
+        
+    #Chi-Squared Test
+    xi_s=0.0
+    for i in range(0, m):
+        xi_s+=math.pow(observedFrequencies[i]-expectFrequencies[i], 2)/expectFrequencies[i]
+        
+    print("Pearson's criterion: "+str(xi_s))
+    #degrees of freedom
+    degreesOfFreedom=m-2-1
+    print("degrees of freedom: "+str(degreesOfFreedom))
+   
     plt.savefig(str(hystogram_name)+parameter_name+".png")
     #plt.clear()
     plt.clf()
