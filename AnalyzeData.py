@@ -5,13 +5,15 @@ import re
 import math
 import numpy as np
 from scipy.stats import shapiro
-
+from scipy.stats import anderson
 
 def main():
     #read data from file
     data = readFileData("10.TXT")
     #buildHistogram(data, tmpName, i)
     #print(data)
+    
+    print("Name                      x1                          x2")
     
     #Sample average
     sa1 = sampleAverage(data, 1);
@@ -34,7 +36,12 @@ def main():
     print("Standart deviation: "+str(sdmr1)+"    "+str(sdmr2))
     
     rotatedData = rotate2dArray(data)
-    buildHistogram(rotatedData, "data1", "name", 1, sa1, peosd1)
+    
+    print("\nFOR x1:")
+    buildHistogram(rotatedData, "data1", "x1", 1, sa1, peosd1)
+    
+    print("\nFOR x2:")
+    buildHistogram(rotatedData, "data2", "x2", 2, sa2, peosd2)
 
 def rotate2dArray(data):
     res = []
@@ -87,7 +94,7 @@ def arrStrToFloat(array):
 def buildHistogram(data, parameter_name, hystogram_name, columnIndex, sampleAverage, pointEstimateOfStandardDeviation):
     #print("paramente:"+parameter_name+" data:"+str(data))
     desired_data = data[columnIndex]
-    print(str(min(desired_data))+"  "+str(max(desired_data)))
+    #print(str(min(desired_data))+"  "+str(max(desired_data)))
     mrange = (min(desired_data), max(desired_data))
     bins=50
     desired_data1=[3,4]
@@ -95,16 +102,44 @@ def buildHistogram(data, parameter_name, hystogram_name, columnIndex, sampleAver
     plt.xlabel(parameter_name)
     #plt.gca().xaxis.set_major_locator(MaxNLocator(integer=True))
     plt.ylabel('Number of measurements')
-    plt.title("Project #"+str(hystogram_name)+" "+parameter_name+" metric hystogram")
+    plt.title(str(hystogram_name)+" hystogram")
     x = np.linspace(min(desired_data), max(desired_data), 100)
     y = []
     for i in range(0, len(x)):
         y.append(probabilityDensities(x[i], sampleAverage, pointEstimateOfStandardDeviation))
     plt.plot(x, y, color="red", linewidth=2)
     
-    #Shapiro-Wilk
-    statistic, p_value = shapiro(desired_data)
-    print(f"Shapiro-Wilk Statistic: {statistic}, P-value: {p_value}")
+    #Shapiro-Wilk (UserWarning: scipy.stats.shapiro: For N > 5000, computed p-value may not be accurate. Current N is 16426.)
+    #statistic, p_value = shapiro(desired_data)
+    #print(f"Shapiro-Wilk Statistic: {statistic}, P-value: {p_value}")
+    
+    #'norm' – Gaussian distribution.
+    #'expon' – Exponential distribution.
+    #'logistic' – Logistic distribution.
+    #'gumbel' – Gumbel distribution.
+    #'gumbel_r' – Right-skewed Gumbel distribution.
+    #'gumbel_l' – Left-skewed Gumbel distribution.
+    
+    #Anderson-Darling
+    result = anderson(desired_data, dist='norm')
+    print(f"Critical Values: {result.critical_values}")
+    print(f"Significance Levels: {result.significance_level}")
+    print(f"Anderson-Darling Statistic (Gaussian distribution): {result.statistic}")
+    
+    result = anderson(desired_data, dist='expon')
+    print(f"Anderson-Darling Statistic (Exponential distribution): {result.statistic}")
+    
+    result = anderson(desired_data, dist='logistic')
+    print(f"Anderson-Darling Statistic (Logistic distribution): {result.statistic}")
+    
+    result = anderson(desired_data, dist='gumbel')
+    print(f"Anderson-Darling Statistic (Gumbel distribution): {result.statistic}")
+    
+    result = anderson(desired_data, dist='gumbel_r')
+    print(f"Anderson-Darling Statistic (Right-skewed Gumbel distribution): {result.statistic}")
+    
+    result = anderson(desired_data, dist='gumbel_l')
+    print(f"Anderson-Darling Statistic (Left-skewed Gumbel distribution): {result.statistic}")
     
     plt.savefig(str(hystogram_name)+parameter_name+".png")
     #plt.clear()
