@@ -6,6 +6,7 @@ import math
 import numpy as np
 from scipy.stats import shapiro
 from scipy.stats import anderson
+from scipy.stats import chisquare
 
 def main():
     #read data from file
@@ -30,11 +31,6 @@ def main():
     peosd2 = pointEstimateOfStandardDeviation(sv2)
     print("Point estimate SD: "+str(peosd1)+"    "+str(peosd2))
 
-    #standard deviation of the measurement result
-    sdmr1 = standardDeviationOfMeasurementResult(data, peosd1)
-    sdmr2 = standardDeviationOfMeasurementResult(data, peosd2)
-    print("Standart deviation: "+str(sdmr1)+"    "+str(sdmr2))
-    
     rotatedData = rotate2dArray(data)
     
     print("\nFOR x1:")
@@ -83,9 +79,6 @@ def sampleVariance(data, columnIndex, sampleAverage):
 
 def pointEstimateOfStandardDeviation(sampleVariance):
     return math.sqrt(sampleVariance)
-
-def standardDeviationOfMeasurementResult(data, pointEstimateOfStandardDeviation):
-    return pointEstimateOfStandardDeviation/math.sqrt(len(data));
 
 def arrStrToFloat(array):
     for i in range(0, len(array)):
@@ -142,7 +135,7 @@ def processData(data, parameter_name, hystogram_name, columnIndex, sampleAverage
     #Pearson's criterion
     
     #number of subranges
-    m=5*math.log(len(desired_data))
+    m=math.log2(len(desired_data)) + 1
     m=math.ceil(m)
     
     #size of subranges
@@ -169,18 +162,26 @@ def processData(data, parameter_name, hystogram_name, columnIndex, sampleAverage
     for i in range(0, len(desired_data)):
         for j in range(0, m):
             if desired_data[i]>xBorders[j][0] and desired_data[i]<xBorders[j][1]:
-                break
-        
+                observedFrequencies[j]=observedFrequencies[j]+1
+    '''    
     #Chi-Squared Test
     xi_s=0.0
     for i in range(0, m):
-        xi_s+=math.pow(observedFrequencies[i]-expectFrequencies[i], 2)/expectFrequencies[i]
+        print(str(observedFrequencies[i])+"   "+str(expectFrequencies[i])+"   "+str(probabilities[i]))
+        xi_s += (observedFrequencies[i] - expectFrequencies[i]) ** 2 / expectFrequencies[i]
         
     print("Pearson's criterion: "+str(xi_s))
     #degrees of freedom
     degreesOfFreedom=m-2-1
     print("degrees of freedom: "+str(degreesOfFreedom))
-   
+    '''
+    num_categories = len(observedFrequencies)
+    total_count = np.sum(observedFrequencies)
+    expected_frequencies = np.array([total_count / num_categories] * num_categories)
+    
+    chi2_stat, p_value = chisquare(observedFrequencies, expected_frequencies)
+    print("Chi-squared statistic:", chi2_stat)
+    
     plt.savefig(str(hystogram_name)+parameter_name+".png")
     #plt.clear()
     plt.clf()
